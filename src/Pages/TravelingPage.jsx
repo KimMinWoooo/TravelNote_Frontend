@@ -1,25 +1,133 @@
-import React from 'react';
-import styled from 'styled-components';
-import UserInfoBox from '../Components/UserInfoBox';
-import TripInfoBox from '../Components/TripInfoBox';
-import AddTripBox from '../Components/AddTripBox';  // AddTripBox 임포트
-import InfoBox from '../Components/InfoBox';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 
-function TravelingPage({ isTraveling, travelInfo }) {  // isLoggedIn props 받기
-  return (
-    <>
-      <UserInfoBox />
-      {isTraveling ? (  // 여행 상태에 따른 조건부 렌더링
-        <TripInfoBox travelInfo={travelInfo} />  // 여행이 시작 되었을 때 TripInfoBox 보여주기
-      ) : (
-        <AddTripBox />  // 여행 시작이이 안되었을 때 AddTripBox 보여주기
-      )}
-      <InfoBox>
-        <div>여긴 아직 생각안해봤는데</div>
-        <div>지난 여행 기록소를 메인에 추가하기</div>
-      </InfoBox>
-    </>
-  );
+function TravelingPage() {
+    const [trip, setTrip] = useState(null);
+    const [travelers, setTravelers] = useState([]);
+    const [payments, setPayments] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [showChat, setShowChat] = useState(false);
+    const [chatInput, setChatInput] = useState('');
+    const [chatLoading, setChatLoading] = useState(false);
+    const [chatHistory, setChatHistory] = useState([]);
+
+    useEffect(() => {
+        const fetchCurrentTrip = async () => {
+            setLoading(true);
+            setError('');
+            try {
+                const token = localStorage.getItem('token');
+                // 진행 중인 여행 1개만 가져온다고 가정
+                const res = await axios.get('/api/trip/current', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setTrip(res.data.trip);
+                if (res.data.trip) {
+                    const travelersRes = await axios.get(`/api/traveler/trip/${res.data.trip.trip_id}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    setTravelers(travelersRes.data.travelers || []);
+                    const paymentsRes = await axios.get(`/api/payment/trip/${res.data.trip.trip_id}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    setPayments(paymentsRes.data.payments || []);
+                }
+            } catch (e) {
+                setError('여행 정보를 불러오지 못했습니다.');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchCurrentTrip();
+    }, []);
+
+    return (
+        <div style={{ maxWidth: 480, margin: '0 auto', padding: '0 0 24px 0' }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 'bold', margin: '18px 0 12px 0' }}>여행 중</h2>
+            {loading && <div>불러오는 중...</div>}
+            {error && <div style={{ color: '#e53935' }}>{error}</div>}
+            {trip ? (
+                <>
+                    <div style={{ fontWeight: 'bold', fontSize: '1.08rem', marginBottom: 6 }}>{trip.name}</div>
+                    <div style={{ color: '#666', fontSize: '0.97rem', marginBottom: 10 }}>{trip.start_date} ~ {trip.end_date}</div>
+                    <section style={{ marginBottom: 18 }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: 6 }}>여행자</div>
+                        <ul style={{ listStyle: 'none', padding: 0, display: 'flex', gap: 8 }}>
+                            {travelers.map(t => (
+                                <li key={t.traveler_id} style={{ background: '#e3f2fd', borderRadius: 6, padding: '6px 12px', fontSize: '0.98rem' }}>
+                                    {t.name} {t.is_secretary ? <span style={{ color: '#1976d2', fontWeight: 'bold' }}>(총무)</span> : null}
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                    <section style={{ marginBottom: 18 }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: 6 }}>지출 내역</div>
+                        <ul style={{ listStyle: 'none', padding: 0 }}>
+                            {payments.map(p => (
+                                <li key={p.payment_id} style={{ background: '#fffde7', borderRadius: 6, marginBottom: 8, padding: '8px 10px', fontSize: '0.97rem' }}>
+                                    <div style={{ fontWeight: 'bold' }}>{p.name} <span style={{ color: '#1976d2', fontWeight: 'normal' }}>({p.cost.toLocaleString()}원)</span></div>
+                                    <div style={{ color: '#888', fontSize: '0.95rem' }}>작성자: {travelers.find(t => t.traveler_id === p.traveler_id)?.name || '-'}</div>
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                    <button className="loginbox-btn" style={{ width: '100%', marginTop: 18 }} onClick={() => setShowChat(true)}>여행 챗봇</button>
+                    {showChat && (
+                        <div style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.25)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowChat(false)}>
+                            <div style={{ background: '#fff', borderRadius: 12, padding: 24, minWidth: 260, maxWidth: 340, boxShadow: '0 2px 12px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column', height: 420 }} onClick={e => e.stopPropagation()}>
+                                <h3 style={{ fontSize: '1.08rem', fontWeight: 'bold', marginBottom: 12 }}>여행 챗봇</h3>
+                                <div style={{ flex: 1, overflowY: 'auto', background: '#f8f9fa', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                                    {chatHistory.length === 0 && <div style={{ color: '#888', textAlign: 'center', margin: '24px 0' }}>질문을 입력해보세요!</div>}
+                                    {chatHistory.map((msg, idx) => (
+                                        <div key={idx} style={{ marginBottom: 10 }}>
+                                            <div style={{ color: '#1976d2', fontWeight: 'bold', marginBottom: 2 }}>나:</div>
+                                            <div style={{ background: '#e3f2fd', borderRadius: 6, padding: '6px 10px', marginBottom: 4 }}>{msg.question}</div>
+                                            <div style={{ color: '#388e3c', fontWeight: 'bold', marginBottom: 2 }}>챗봇:</div>
+                                            <div style={{ background: '#fffde7', borderRadius: 6, padding: '6px 10px' }}>{msg.answer}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <form onSubmit={async e => {
+                                    e.preventDefault();
+                                    if (!chatInput.trim()) return;
+                                    setChatLoading(true);
+                                    try {
+                                        // 실제 챗봇 API 엔드포인트로 요청
+                                        const res = await axios.post('http://localhost:3001/api/chat', {
+                                            message: chatInput
+                                        });
+                                        setChatHistory(h => [...h, { question: chatInput, answer: res.data.answer }]);
+                                        setChatInput('');
+                                    } catch {
+                                        setChatHistory(h => [...h, { question: chatInput, answer: '챗봇 응답에 실패했습니다.' }]);
+                                    } finally {
+                                        setChatLoading(false);
+                                    }
+                                }} style={{ display: 'flex', gap: 6 }}>
+                                    <input
+                                        className="loginbox-input"
+                                        type="text"
+                                        placeholder="여행 관련 질문을 입력하세요"
+                                        value={chatInput}
+                                        onChange={e => setChatInput(e.target.value)}
+                                        style={{ flex: 1 }}
+                                        disabled={chatLoading}
+                                    />
+                                    <button className="loginbox-btn" type="submit" disabled={chatLoading || !chatInput.trim()} style={{ minWidth: 60 }}>
+                                        {chatLoading ? '전송중' : '전송'}
+                                    </button>
+                                </form>
+                                <button className="loginbox-btn" style={{ width: '100%', marginTop: 10 }} onClick={() => setShowChat(false)}>닫기</button>
+                            </div>
+                        </div>
+                    )}
+                </>
+            ) : (
+                <div>진행 중인 여행이 없습니다.</div>
+            )}
+        </div>
+    );
 }
 
 export default TravelingPage;

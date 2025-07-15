@@ -1,30 +1,58 @@
-import React from 'react';
-import styled from 'styled-components';
-import { Link } from 'react-router-dom';
-import AddTripBox from '../Components/AddTripBox';
-import InfoBox from '../Components/InfoBox';
-import LoginBox from '../Components/LoginBox';
-import UserInfoBox from '../Components/UserInfoBox'; // UserInfoBox 임포트
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
-function BeforeTripPage({ isLoggedIn }) { // isLoggedIn props 받기
-  return (
-    <>
-      {isLoggedIn ? ( // 로그인 상태에 따른 조건부 렌더링
-        <UserInfoBox /> // 로그인 되었을 때 UserInfoBox 보여주기
-      ) : (
-        <LoginBox /> // 로그인되지 않았을 때 LoginBox 보여주기
-      )}
-      <AddTripBox>
-        <Link to="/add-trip">
-          여행 추가하기
-        </Link>
-      </AddTripBox>
-      <InfoBox>
-        <div>여긴 아직 생각안해봤는데</div>
-        <div>1. 전체적인 여행 관련 소식</div>
-      </InfoBox>
-    </>
-  );
+function BeforeTripPage() {
+    const [trips, setTrips] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchTrips = async () => {
+            setLoading(true);
+            setError('');
+            try {
+                const token = localStorage.getItem('token');
+                const res = await axios.get('/api/trip/my', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setTrips(res.data.trips || []);
+            } catch (e) {
+                setError('여행 목록을 불러오지 못했습니다.');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchTrips();
+    }, []);
+
+    return (
+        <div style={{ maxWidth: 480, margin: '0 auto', padding: '0 0 24px 0' }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 'bold', margin: '18px 0 12px 0' }}>내 여행 목록</h2>
+            {loading && <div>불러오는 중...</div>}
+            {error && <div style={{ color: '#e53935' }}>{error}</div>}
+            <ul style={{ listStyle: 'none', padding: 0 }}>
+                {trips.map(trip => (
+                    <li key={trip.trip_id} style={{
+                        background: '#f8f9fa',
+                        borderRadius: 8,
+                        marginBottom: 12,
+                        padding: '16px 14px',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                        cursor: 'pointer'
+                    }}
+                    onClick={() => navigate(`/trip/${trip.trip_id}`)}
+                    >
+                        <div style={{ fontWeight: 'bold', fontSize: '1.08rem' }}>{trip.name}</div>
+                        <div style={{ fontSize: '0.97rem', color: '#666', marginTop: 4 }}>
+                            {trip.start_date} ~ {trip.end_date}
+                        </div>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
 }
 
 export default BeforeTripPage;
