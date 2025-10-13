@@ -19,36 +19,41 @@ function TripDetailPage() {
     const [inviteId, setInviteId] = useState('');
     const [inviteLoading, setInviteLoading] = useState(false);
     const [inviteError, setInviteError] = useState('');
-    const [settleOpen, setSettleOpen] = useState(false);
-    const [settleResult, setSettleResult] = useState(null);
-    const [settleLoading, setSettleLoading] = useState(false);
-    const [settleError, setSettleError] = useState('');
-    const [memories, setMemories] = useState([]);
-    const [memoryLoading, setMemoryLoading] = useState(false);
-    const [memoryError, setMemoryError] = useState('');
-    const [memoryPhoto, setMemoryPhoto] = useState(null);
-    const [memoryPlace, setMemoryPlace] = useState('');
-    const [memoryUploadLoading, setMemoryUploadLoading] = useState(false);
-    const [memoryUploadError, setMemoryUploadError] = useState('');
+    const [acctInputs, setAcctInputs] = useState({});
+    const [settlement, setSettlement] = useState(null);
 
     useEffect(() => {
         const fetchDetail = async () => {
             setLoading(true);
             setError('');
             try {
-                const token = localStorage.getItem('token');
-                const tripRes = await axios.get(`/api/trip/${tripId}`, {
-                    headers: { Authorization: `Bearer ${token}` }
+                const tripRes = await axios.get(`/api/trip/${tripId}`, { withCredentials: true });
+                const t = tripRes.data;
+                setTrip({
+                    name: t.name,
+                    start_date: t.startDate ?? t.start_date,
+                    end_date: t.endDate ?? t.end_date
                 });
-                setTrip(tripRes.data);
-                const travelersRes = await axios.get(`/api/traveler/trip/${tripId}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setTravelers(travelersRes.data.travelers || []);
-                const paymentsRes = await axios.get(`/api/payment/trip/${tripId}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setPayments(paymentsRes.data.payments || []);
+                const travelersRes = await axios.get(`/api/traveler?tripId=${tripId}`, { withCredentials: true });
+                const tv = travelersRes.data.travelers || [];
+                const mappedTv = tv.map(x => ({
+                    traveler_id: x.travelerId ?? x.traveler_id,
+                    member_id: x.memberId ?? x.member_id,
+                    name: x.name,
+                    total_cost: x.totalCost ?? x.total_cost ?? 0,
+                    account_number: x.accountNumber ?? x.account_number ?? '',
+                    is_secretary: x.isSecretary ?? x.is_secretary ?? false
+                }));
+                setTravelers(mappedTv);
+                setAcctInputs(Object.fromEntries(mappedTv.map(t => [t.traveler_id, t.account_number || ''])));
+                const paymentsRes = await axios.get(`/api/payment?tripId=${tripId}`, { withCredentials: true });
+                const list = Array.isArray(paymentsRes.data) ? paymentsRes.data : (paymentsRes.data.payments || []);
+                setPayments(list.map(p => ({
+                    payment_id: p.paymentId ?? p.payment_id ?? p.id,
+                    traveler_id: p.travelerId ?? p.traveler_id,
+                    name: p.name,
+                    cost: p.cost
+                })));
             } catch (e) {
                 setError('여행 상세 정보를 불러오지 못했습니다.');
             } finally {
@@ -56,26 +61,6 @@ function TripDetailPage() {
             }
         };
         fetchDetail();
-    }, [tripId]);
-
-    useEffect(() => {
-        // 추억 모음집 불러오기
-        const fetchMemories = async () => {
-            setMemoryLoading(true);
-            setMemoryError('');
-            try {
-                const token = localStorage.getItem('token');
-                const res = await axios.get(`/api/memory/trip/${tripId}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setMemories(res.data.memories || []);
-            } catch {
-                setMemoryError('추억 모음집을 불러오지 못했습니다.');
-            } finally {
-                setMemoryLoading(false);
-            }
-        };
-        fetchMemories();
     }, [tripId]);
 
     const handleAddPayment = async (e) => {
@@ -87,29 +72,55 @@ function TripDetailPage() {
         setAddLoading(true);
         setAddError('');
         try {
-            const token = localStorage.getItem('token');
             await axios.post('/api/payment', {
                 name: addName,
                 cost: Number(addCost),
-                traveler_id: addTravelerId,
-                trip_id: tripId
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+                travelerId: Number(addTravelerId)
+            }, { withCredentials: true });
             setShowAdd(false);
             setAddName('');
             setAddCost('');
             setAddTravelerId('');
             // 새로고침
-            const paymentsRes = await axios.get(`/api/payment/trip/${tripId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setPayments(paymentsRes.data.payments || []);
+            const paymentsRes = await axios.get(`/api/payment?tripId=${tripId}`, { withCredentials: true });
+            const list = Array.isArray(paymentsRes.data) ? paymentsRes.data : (paymentsRes.data.payments || []);
+            setPayments(list.map(p => ({
+                payment_id: p.paymentId ?? p.payment_id ?? p.id,
+                traveler_id: p.travelerId ?? p.traveler_id,
+                name: p.name,
+                cost: p.cost
+            })));
         } catch (e) {
             setAddError('지출 추가에 실패했습니다.');
         } finally {
             setAddLoading(false);
         }
+    };
+
+    const handleAccountSave = async (travelerId) => {
+        const accountNumber = acctInputs[travelerId] || '';
+        try {
+            await axios.put(`/api/traveler/${travelerId}/account-number`, { accountNumber }, { withCredentials: true });
+            setTravelers(prev => prev.map(t => t.traveler_id === travelerId ? { ...t, account_number: accountNumber } : t));
+        } catch (e) {
+            alert('계좌번호 저장에 실패했습니다.');
+        }
+    };
+
+    const handleEndTrip = () => {
+        // 총무 1명 기준: 총무는 대신 결제했고, 각 멤버 total_cost는 개인 사용액.
+        // 1인당 부담액 = 총지출 / 인원. 각자 balance = 개인사용액 - 1인당.
+        // 송금은 balance<0 인 사람이 총무에게 지불하는 구조로 단순화.
+        const totals = travelers.map(t => ({ id: t.traveler_id, name: t.name, cost: Number(t.total_cost || 0), isSec: !!t.is_secretary }));
+        const total = totals.reduce((s, x) => s + x.cost, 0);
+        const n = totals.length || 1;
+        const perCapita = Math.round(total / n);
+        const items = totals.map(x => ({ ...x, balance: x.cost - perCapita }));
+        const treasurer = items.find(i => i.isSec) || items[0];
+        const transfers = items
+            .filter(i => i.id !== treasurer.id && i.balance < 0)
+            .map(i => ({ from: i.id, to: treasurer.id, amount: -i.balance }));
+        setSettlement({ total, perCapita, items, transfers });
     };
 
     return (
@@ -137,19 +148,16 @@ function TripDetailPage() {
                                 setInviteLoading(true);
                                 setInviteError('');
                                 try {
-                                    const token = localStorage.getItem('token');
                                     await axios.post('/api/traveler', {
-                                        trip_id: tripId,
-                                        register_id: inviteId
-                                    }, {
-                                        headers: { Authorization: `Bearer ${token}` }
-                                    });
+                                        memberId: 1,
+                                        tripId: Number(tripId),
+                                        name: inviteId,
+                                        isSecretary: false
+                                    }, { withCredentials: true });
                                     setShowInvite(false);
                                     setInviteId('');
                                     // 목록 갱신
-                                    const travelersRes = await axios.get(`/api/traveler/trip/${tripId}`, {
-                                        headers: { Authorization: `Bearer ${token}` }
-                                    });
+                                    const travelersRes = await axios.get(`/api/traveler?tripId=${tripId}`, { withCredentials: true });
                                     setTravelers(travelersRes.data.travelers || []);
                                 } catch {
                                     setInviteError('초대에 실패했습니다.');
@@ -171,10 +179,27 @@ function TripDetailPage() {
                                 </button>
                             </form>
                         )}
-                        <ul style={{ listStyle: 'none', padding: 0, display: 'flex', gap: 8 }}>
+                        <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {travelers.map(t => (
-                                <li key={t.traveler_id} style={{ background: '#e3f2fd', borderRadius: 6, padding: '6px 12px', fontSize: '0.98rem' }}>
-                                    {t.name} {t.is_secretary ? <span style={{ color: '#1976d2', fontWeight: 'bold' }}>(총무)</span> : null}
+                                <li key={t.traveler_id} style={{ background: '#e3f2fd', borderRadius: 6, padding: '10px 12px', fontSize: '0.98rem', display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <div>
+                                        <div style={{ fontWeight: 'bold' }}>{t.name} {t.is_secretary ? <span style={{ color: '#1976d2', fontWeight: 'bold' }}>(총무)</span> : null}</div>
+                                        <div style={{ color: '#666', fontSize: '0.92rem' }}>총 지출: {Number(t.total_cost || 0).toLocaleString()}원</div>
+                                    </div>
+                                    {t.is_secretary ? (
+                                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                            <input
+                                                className="loginbox-input"
+                                                style={{ minWidth: 220 }}
+                                                placeholder="총무 계좌번호 입력"
+                                                value={acctInputs[t.traveler_id] ?? ''}
+                                                onChange={e => setAcctInputs(v => ({ ...v, [t.traveler_id]: e.target.value }))}
+                                            />
+                                            <button className="loginbox-btn" onClick={() => handleAccountSave(t.traveler_id)}>저장</button>
+                                        </div>
+                                    ) : (
+                                        t.account_number ? <div style={{ color: '#555' }}>계좌: {t.account_number}</div> : null
+                                    )}
                                 </li>
                             ))}
                         </ul>
@@ -182,9 +207,14 @@ function TripDetailPage() {
                     <section style={{ marginBottom: 18 }}>
                         <div style={{ fontWeight: 'bold', marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span>지출 내역</span>
-                            <button className="loginbox-btn" style={{ fontSize: '0.98rem', padding: '6px 12px', width: 'auto', margin: 0 }} onClick={() => setShowAdd(v => !v)}>
-                                {showAdd ? '취소' : '지출 추가'}
-                            </button>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <button className="loginbox-btn" style={{ fontSize: '0.98rem', padding: '6px 12px', width: 'auto', margin: 0 }} onClick={() => setShowAdd(v => !v)}>
+                                    {showAdd ? '취소' : '지출 추가'}
+                                </button>
+                                <button className="loginbox-btn" style={{ fontSize: '0.98rem', padding: '6px 12px', width: 'auto', margin: 0, background: '#3949ab' }} onClick={handleEndTrip}>
+                                    여행 종료(정산)
+                                </button>
+                            </div>
                         </div>
                         {showAdd && (
                             <form onSubmit={handleAddPayment} style={{ background: '#f1f8e9', borderRadius: 8, padding: 12, marginBottom: 10 }}>
@@ -230,16 +260,17 @@ function TripDetailPage() {
                                     </div>
                                     <button onClick={async () => {
                                         if (!window.confirm('정말 삭제하시겠습니까?')) return;
-                                        const token = localStorage.getItem('token');
                                         try {
-                                            await axios.delete(`/api/payment/${p.payment_id}`, {
-                                                headers: { Authorization: `Bearer ${token}` }
-                                            });
+                                            await axios.delete(`/api/payment/${p.payment_id}`, { withCredentials: true });
                                             // 삭제 후 목록 갱신
-                                            const paymentsRes = await axios.get(`/api/payment/trip/${tripId}`, {
-                                                headers: { Authorization: `Bearer ${token}` }
-                                            });
-                                            setPayments(paymentsRes.data.payments || []);
+                                            const paymentsRes = await axios.get(`/api/payment?tripId=${tripId}`, { withCredentials: true });
+                                            const list = Array.isArray(paymentsRes.data) ? paymentsRes.data : (paymentsRes.data.payments || []);
+                                            setPayments(list.map(p => ({
+                                                payment_id: p.paymentId ?? p.payment_id ?? p.id,
+                                                traveler_id: p.travelerId ?? p.traveler_id,
+                                                name: p.name,
+                                                cost: p.cost
+                                            })));
                                         } catch {
                                             alert('삭제에 실패했습니다.');
                                         }
@@ -248,90 +279,34 @@ function TripDetailPage() {
                             ))}
                         </ul>
                     </section>
-                    <section style={{ marginBottom: 18 }}>
-                        <div style={{ fontWeight: 'bold', marginBottom: 6 }}>추억 모음집</div>
-                        <form onSubmit={async e => {
-                            e.preventDefault();
-                            if (!memoryPhoto || !memoryPlace) {
-                                setMemoryUploadError('사진과 장소를 모두 입력하세요.');
-                                return;
-                            }
-                            setMemoryUploadLoading(true);
-                            setMemoryUploadError('');
-                            try {
-                                const token = localStorage.getItem('token');
-                                const formData = new FormData();
-                                formData.append('photo', memoryPhoto);
-                                formData.append('place', memoryPlace);
-                                formData.append('trip_id', tripId);
-                                await axios.post('/api/memory', formData, {
-                                    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
-                                });
-                                setMemoryPhoto(null);
-                                setMemoryPlace('');
-                                // 목록 갱신
-                                const res = await axios.get(`/api/memory/trip/${tripId}`, {
-                                    headers: { Authorization: `Bearer ${token}` }
-                                });
-                                setMemories(res.data.memories || []);
-                            } catch {
-                                setMemoryUploadError('업로드에 실패했습니다.');
-                            } finally {
-                                setMemoryUploadLoading(false);
-                            }
-                        }} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
-                            <input type="file" accept="image/*" onChange={e => setMemoryPhoto(e.target.files[0])} />
-                            <input className="loginbox-input" type="text" placeholder="장소명" value={memoryPlace} onChange={e => setMemoryPlace(e.target.value)} />
-                            {memoryUploadError && <div className="loginbox-error">{memoryUploadError}</div>}
-                            <button className="loginbox-btn" type="submit" disabled={memoryUploadLoading}>{memoryUploadLoading ? '업로드 중...' : '추억 업로드'}</button>
-                        </form>
-                        {memoryLoading && <div>불러오는 중...</div>}
-                        {memoryError && <div style={{ color: '#e53935' }}>{memoryError}</div>}
-                        <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                            {memories.map(m => (
-                                <li key={m.memory_id} style={{ width: 100, background: '#f8f9fa', borderRadius: 8, padding: 6, textAlign: 'center' }}>
-                                    <img src={m.photo_url} alt={m.place} style={{ width: '100%', height: 70, objectFit: 'cover', borderRadius: 6, marginBottom: 4 }} />
-                                    <div style={{ fontSize: '0.95rem', color: '#1976d2', fontWeight: 'bold' }}>{m.place}</div>
-                                </li>
-                            ))}
-                        </ul>
-                    </section>
-                    <button className="loginbox-btn" style={{ width: '100%', marginTop: 18 }} onClick={async () => {
-                        setSettleOpen(true);
-                        setSettleLoading(true);
-                        setSettleError('');
-                        try {
-                            const token = localStorage.getItem('token');
-                            const res = await axios.get(`/api/payment/settle/${tripId}`, {
-                                headers: { Authorization: `Bearer ${token}` }
-                            });
-                            setSettleResult(res.data);
-                        } catch {
-                            setSettleError('정산 결과를 불러오지 못했습니다.');
-                        } finally {
-                            setSettleLoading(false);
-                        }
-                    }}>
-                        정산하기
-                    </button>
-                    {settleOpen && (
-                        <div style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.25)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setSettleOpen(false)}>
-                            <div style={{ background: '#fff', borderRadius: 12, padding: 24, minWidth: 260, maxWidth: 340, boxShadow: '0 2px 12px rgba(0,0,0,0.12)' }} onClick={e => e.stopPropagation()}>
-                                <h3 style={{ fontSize: '1.08rem', fontWeight: 'bold', marginBottom: 12 }}>정산 결과</h3>
-                                {settleLoading && <div>계산 중...</div>}
-                                {settleError && <div style={{ color: '#e53935' }}>{settleError}</div>}
-                                {settleResult && Array.isArray(settleResult.settles) && (
-                                    <ul style={{ listStyle: 'none', padding: 0 }}>
-                                        {settleResult.settles.map((s, idx) => (
-                                            <li key={idx} style={{ marginBottom: 8, fontSize: '0.98rem' }}>
-                                                <span style={{ fontWeight: 'bold' }}>{s.from}</span> → <span style={{ color: '#1976d2', fontWeight: 'bold' }}>{s.to}</span> : <span style={{ color: '#388e3c' }}>{s.amount.toLocaleString()}원</span>
-                                            </li>
-                                        ))}
-                                    </ul>
+                    {settlement && (
+                        <section style={{ marginBottom: 18 }}>
+                            <div style={{ fontWeight: 'bold', marginBottom: 6 }}>정산 결과</div>
+                            <div style={{ background: '#f8f9fa', borderRadius: 8, padding: 12, marginBottom: 10 }}>
+                                <div>총 지출: {settlement.total.toLocaleString()}원</div>
+                                <div>1인당 부담액: {settlement.perCapita.toLocaleString()}원</div>
+                                {travelers.find(t => t.is_secretary)?.account_number && (
+                                    <div>총무 계좌: {travelers.find(t => t.is_secretary).account_number}</div>
                                 )}
-                                <button className="loginbox-btn" style={{ width: '100%', marginTop: 12 }} onClick={() => setSettleOpen(false)}>닫기</button>
                             </div>
-                        </div>
+                            <div style={{ fontWeight: 'bold', marginBottom: 6 }}>개인별 정산액</div>
+                            <ul style={{ listStyle: 'none', padding: 0, marginBottom: 10 }}>
+                                {settlement.items.map(i => (
+                                    <li key={i.id} style={{ background: '#eef7ff', borderRadius: 6, padding: '8px 10px', marginBottom: 6 }}>
+                                        {travelers.find(t => t.traveler_id === i.id)?.name || i.id}: {i.balance.toLocaleString()}원 {i.balance >= 0 ? '(받음)' : '(지급)'}
+                                    </li>
+                                ))}
+                            </ul>
+                            <div style={{ fontWeight: 'bold', marginBottom: 6 }}>송금 리스트</div>
+                            <ul style={{ listStyle: 'none', padding: 0 }}>
+                                {settlement.transfers.length === 0 && <li>정산 필요 없음</li>}
+                                {settlement.transfers.map((tr, idx) => (
+                                    <li key={idx} style={{ background: '#fffde7', borderRadius: 6, padding: '8px 10px', marginBottom: 6 }}>
+                                        {travelers.find(t => t.traveler_id === tr.from)?.name || tr.from} → {travelers.find(t => t.traveler_id === tr.to)?.name || tr.to}: {tr.amount.toLocaleString()}원
+                                    </li>
+                                ))}
+                            </ul>
+                        </section>
                     )}
                 </>
             )}

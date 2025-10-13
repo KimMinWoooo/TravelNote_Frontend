@@ -17,21 +17,30 @@ function TravelingPage() {
             setLoading(true);
             setError('');
             try {
-                const token = localStorage.getItem('token');
-                // 진행 중인 여행 1개만 가져온다고 가정
-                const res = await axios.get('/api/trip/current', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setTrip(res.data.trip);
-                if (res.data.trip) {
-                    const travelersRes = await axios.get(`/api/traveler/trip/${res.data.trip.trip_id}`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
+                // 현재 여행 API가 없으므로, 목록에서 가장 최근 항목을 선택
+                const listRes = await axios.get('/api/trip', { withCredentials: true });
+                const list = Array.isArray(listRes.data) ? listRes.data : (listRes.data?.trips || []);
+                if (list.length === 0) {
+                    setTrip(null);
+                } else {
+                    const latest = list[list.length - 1];
+                    const normalized = {
+                        trip_id: latest.id ?? latest.trip_id,
+                        name: latest.name,
+                        start_date: latest.startDate ?? latest.start_date,
+                        end_date: latest.endDate ?? latest.end_date
+                    };
+                    setTrip(normalized);
+                    const travelersRes = await axios.get(`/api/traveler?tripId=${normalized.trip_id}`, { withCredentials: true });
                     setTravelers(travelersRes.data.travelers || []);
-                    const paymentsRes = await axios.get(`/api/payment/trip/${res.data.trip.trip_id}`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    setPayments(paymentsRes.data.payments || []);
+                    const paymentsRes = await axios.get(`/api/payment?tripId=${normalized.trip_id}`, { withCredentials: true });
+                    const payList = Array.isArray(paymentsRes.data) ? paymentsRes.data : (paymentsRes.data.payments || []);
+                    setPayments(payList.map(p => ({
+                        payment_id: p.paymentId ?? p.payment_id ?? p.id,
+                        traveler_id: p.travelerId ?? p.traveler_id,
+                        name: p.name,
+                        cost: p.cost
+                    })));
                 }
             } catch (e) {
                 setError('여행 정보를 불러오지 못했습니다.');
@@ -67,7 +76,7 @@ function TravelingPage() {
                             {payments.map(p => (
                                 <li key={p.payment_id} style={{ background: '#fffde7', borderRadius: 6, marginBottom: 8, padding: '8px 10px', fontSize: '0.97rem' }}>
                                     <div style={{ fontWeight: 'bold' }}>{p.name} <span style={{ color: '#1976d2', fontWeight: 'normal' }}>({p.cost.toLocaleString()}원)</span></div>
-                                    <div style={{ color: '#888', fontSize: '0.95rem' }}>작성자: {travelers.find(t => t.traveler_id === p.traveler_id)?.name || '-'}</div>
+                                    {/* <div style={{ color: '#888', fontSize: '0.95rem' }}>작성자: {travelers.find(t => t.traveler_id === p.traveler_id)?.name || '-'}</div> */}
                                 </li>
                             ))}
                         </ul>

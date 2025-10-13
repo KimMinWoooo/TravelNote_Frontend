@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import LoginPage from './Pages/LoginPage';
 import SignupPage from './Pages/SignupPage';
 import AddTripInfoPage from './Pages/AddTripInfoPage';
+import UserInfoPage from './Pages/UserInfoPage';
 import BeforeTripPage from './Pages/BeforeTripPage';
 import TravelingPage from './Pages/TravelingPage';
 import TripDetailPage from './Pages/TripDetailPage';
@@ -19,7 +20,7 @@ function BottomNav() {
             <a href="/before" className="bottom-nav__item">여행목록</a>
             <a href="/add" className="bottom-nav__item">여행생성</a>
             <a href="/traveling" className="bottom-nav__item">여행중</a>
-            <a href="/login" className="bottom-nav__item">내정보</a>
+            <a href="/me" className="bottom-nav__item">내정보</a>
         </nav>
     );
 }
@@ -32,6 +33,7 @@ function App() {
                 <main className="main-content">
                     <Routes>
                         <Route path="/login" element={<LoginPage />} />
+                        <Route path="/me" element={<UserInfoPage />} />
                         <Route path="/signup" element={<SignupPage />} />
                         <Route path="/add" element={<AddTripInfoPage />} />
                         <Route path="/before" element={<BeforeTripPage />} />

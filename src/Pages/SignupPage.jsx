@@ -18,10 +18,9 @@ function SignupPage() {
         setLoading(true);
         setError('');
         try {
-            // 실제 API 엔드포인트는 명세서에 따라 수정 필요
-            await axios.post('api/member/signup', {
+            await axios.post('/api/member/signup', {
                 name,
-                register_id: registerId,
+                email: registerId,
                 password
             });
             setSuccess(true);

@@ -3,6 +3,7 @@ import axios from 'axios';
 
 function AddTripInfoPage() {
     const [name, setName] = useState('');
+    const [travelerName, setTravelerName] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [loading, setLoading] = useState(false);
@@ -11,7 +12,7 @@ function AddTripInfoPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!name || !startDate || !endDate) {
+        if (!name || !travelerName || !startDate || !endDate) {
             setError('모든 항목을 입력하세요.');
             return;
         }
@@ -20,11 +21,13 @@ function AddTripInfoPage() {
         try {
             const token = localStorage.getItem('token');
             await axios.post('/api/trip', {
-                name,
-                start_date: startDate,
-                end_date: endDate
+                memberId: 1,
+                travelerName: travelerName,
+                startDate: startDate,
+                endDate: endDate,
+                tripName: name
             }, {
-                headers: { Authorization: `Bearer ${token}` }
+                withCredentials: true
             });
             setSuccess(true);
             setTimeout(() => {
@@ -46,6 +49,13 @@ function AddTripInfoPage() {
                 placeholder="여행 이름"
                 value={name}
                 onChange={e => setName(e.target.value)}
+            />
+            <input
+                className="loginbox-input"
+                type="text"
+                placeholder="초기 여행자(총무) 이름"
+                value={travelerName}
+                onChange={e => setTravelerName(e.target.value)}
             />
             <input
                 className="loginbox-input"

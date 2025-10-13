@@ -12,11 +12,10 @@ function LoginPage() {
         try {
             // 실제 API 엔드포인트는 명세서에 따라 수정 필요
             const res = await axios.post('/api/member/login', {
-                register_id: registerId,
+                email: registerId,
                 password: password
-            });
-            // 토큰 등 인증 정보 저장 (예: localStorage)
-            localStorage.setItem('token', res.data.token);
+            }, { withCredentials: true });
+            // JWT는 쿠키로 발급되므로 로컬 저장 불필요. 성공 시 이동
             window.location.href = '/before';
         } catch (e) {
             setError('로그인에 실패했습니다. 아이디/비밀번호를 확인하세요.');

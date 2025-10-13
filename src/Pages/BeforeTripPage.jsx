@@ -13,11 +13,16 @@ function BeforeTripPage() {
             setLoading(true);
             setError('');
             try {
-                const token = localStorage.getItem('token');
-                const res = await axios.get('/api/trip/my', {
-                    headers: { Authorization: `Bearer ${token}` }
+                const res = await axios.get('/api/trip', {
+                    withCredentials: true
                 });
-                setTrips(res.data.trips || []);
+                const list = Array.isArray(res.data) ? res.data : (res.data?.trips || []);
+                setTrips(list.map(t => ({
+                    trip_id: t.id ?? t.trip_id,
+                    name: t.name,
+                    start_date: t.startDate ?? t.start_date,
+                    end_date: t.endDate ?? t.end_date
+                })));
             } catch (e) {
                 setError('여행 목록을 불러오지 못했습니다.');
             } finally {
