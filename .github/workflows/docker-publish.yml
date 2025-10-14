@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'Custom image tag (fallback to build-${{ github.run_number }})'
+        description: 'Custom image tag (fallback to build-RUN_NUMBER)'
         required: false
         type: string
 
