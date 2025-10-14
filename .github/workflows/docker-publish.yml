@@ -5,8 +5,12 @@ name: docker-publish
 on:
   push:
     branches: [ "main" ]
-    tags: [ "v*.*.*" ]
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Custom image tag (fallback to build-${{ github.run_number }})'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -44,15 +48,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels)
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=sha,enable=true,priority=200
-            type=ref,event=tag
+      - name: Compute image tag
+        id: compute_tag
+        run: |
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            echo "IMAGE_TAG=${{ github.event.inputs.image_tag }}" >> $GITHUB_ENV
+          else
+            echo "IMAGE_TAG=build-${{ github.run_number }}" >> $GITHUB_ENV
+          fi
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -60,8 +63,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           platforms: linux/amd64
 
 
