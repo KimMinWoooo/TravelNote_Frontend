@@ -19,7 +19,6 @@ function AddTripInfoPage() {
         setLoading(true);
         setError('');
         try {
-            const token = localStorage.getItem('token');
             await axios.post('/api/trip', {
                 memberId: 1,
                 travelerName: travelerName,

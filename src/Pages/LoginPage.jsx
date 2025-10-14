@@ -11,7 +11,7 @@ function LoginPage() {
         setError('');
         try {
             // 실제 API 엔드포인트는 명세서에 따라 수정 필요
-            const res = await axios.post('/api/member/login', {
+            await axios.post('/api/member/login', {
                 email: registerId,
                 password: password
             }, { withCredentials: true });
