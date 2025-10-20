@@ -11,10 +11,14 @@ function LoginPage() {
         setError('');
         try {
             // 실제 API 엔드포인트는 명세서에 따라 수정 필요
-            await apiClient.post('/api/member/login', {
+            const res = await apiClient.post('/api/member/login', {
                 email: registerId,
                 password: password
             });
+            // 본문에 내려오는 토큰을 로컬스토리지에 저장하여 Authorization 헤더로 사용
+            if (res?.data?.token) {
+                try { localStorage.setItem('token', res.data.token); } catch {}
+            }
             // JWT는 쿠키로 발급되므로 로컬 저장 불필요. 성공 시 이동
             window.location.href = '/before';
         } catch (e) {

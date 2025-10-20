@@ -18,6 +18,14 @@ const apiClient = axios.create({
 // 요청 인터셉터
 apiClient.interceptors.request.use(
   (config) => {
+    // 로컬스토리지 토큰이 있으면 Authorization 헤더로 첨부
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers = config.headers || {};
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
+    } catch {}
     // 개발 환경에서는 프록시를 사용하므로 baseURL을 제거
     if (process.env.NODE_ENV === 'development') {
       config.baseURL = '';
@@ -37,6 +45,7 @@ apiClient.interceptors.response.use(
   (error) => {
     // 401 에러 시 로그인 페이지로 리다이렉트
     if (error.response?.status === 401) {
+      try { localStorage.removeItem('token'); } catch {}
       window.location.href = '/login';
     }
     return Promise.reject(error);
