@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../config/axios';
 
 function TripDetailPage() {
     const { tripId } = useParams();
@@ -27,14 +27,14 @@ function TripDetailPage() {
             setLoading(true);
             setError('');
             try {
-                const tripRes = await axios.get(`/api/trip/${tripId}`, { withCredentials: true });
+                const tripRes = await apiClient.get(`/api/trip/${tripId}`);
                 const t = tripRes.data;
                 setTrip({
                     name: t.name,
                     start_date: t.startDate ?? t.start_date,
                     end_date: t.endDate ?? t.end_date
                 });
-                const travelersRes = await axios.get(`/api/traveler?tripId=${tripId}`, { withCredentials: true });
+                const travelersRes = await apiClient.get(`/api/traveler?tripId=${tripId}`);
                 const tv = travelersRes.data.travelers || [];
                 const mappedTv = tv.map(x => ({
                     traveler_id: x.travelerId ?? x.traveler_id,
@@ -46,7 +46,7 @@ function TripDetailPage() {
                 }));
                 setTravelers(mappedTv);
                 setAcctInputs(Object.fromEntries(mappedTv.map(t => [t.traveler_id, t.account_number || ''])));
-                const paymentsRes = await axios.get(`/api/payment?tripId=${tripId}`, { withCredentials: true });
+                const paymentsRes = await apiClient.get(`/api/payment?tripId=${tripId}`);
                 const list = Array.isArray(paymentsRes.data) ? paymentsRes.data : (paymentsRes.data.payments || []);
                 setPayments(list.map(p => ({
                     payment_id: p.paymentId ?? p.payment_id ?? p.id,
@@ -72,11 +72,11 @@ function TripDetailPage() {
         setAddLoading(true);
         setAddError('');
         try {
-            await axios.post('/api/payment', {
+            await apiClient.post('/api/payment', {
                 name: addName,
                 cost: Number(addCost),
                 travelerId: Number(addTravelerId)
-            }, { withCredentials: true });
+            });
             setShowAdd(false);
             setAddName('');
             setAddCost('');
@@ -100,7 +100,7 @@ function TripDetailPage() {
     const handleAccountSave = async (travelerId) => {
         const accountNumber = acctInputs[travelerId] || '';
         try {
-            await axios.put(`/api/traveler/${travelerId}/account-number`, { accountNumber }, { withCredentials: true });
+            await apiClient.put(`/api/traveler/${travelerId}/account-number`, { accountNumber });
             setTravelers(prev => prev.map(t => t.traveler_id === travelerId ? { ...t, account_number: accountNumber } : t));
         } catch (e) {
             alert('계좌번호 저장에 실패했습니다.');
@@ -148,16 +148,16 @@ function TripDetailPage() {
                                 setInviteLoading(true);
                                 setInviteError('');
                                 try {
-                                    await axios.post('/api/traveler', {
+                                    await apiClient.post('/api/traveler', {
                                         memberId: 1,
                                         tripId: Number(tripId),
                                         name: inviteId,
                                         isSecretary: false
-                                    }, { withCredentials: true });
+                                    });
                                     setShowInvite(false);
                                     setInviteId('');
                                     // 목록 갱신
-                                    const travelersRes = await axios.get(`/api/traveler?tripId=${tripId}`, { withCredentials: true });
+                                    const travelersRes = await apiClient.get(`/api/traveler?tripId=${tripId}`);
                                     setTravelers(travelersRes.data.travelers || []);
                                 } catch {
                                     setInviteError('초대에 실패했습니다.');
@@ -261,9 +261,9 @@ function TripDetailPage() {
                                     <button onClick={async () => {
                                         if (!window.confirm('정말 삭제하시겠습니까?')) return;
                                         try {
-                                            await axios.delete(`/api/payment/${p.payment_id}`, { withCredentials: true });
+                                            await apiClient.delete(`/api/payment/${p.payment_id}`);
                                             // 삭제 후 목록 갱신
-                                            const paymentsRes = await axios.get(`/api/payment?tripId=${tripId}`, { withCredentials: true });
+                                            const paymentsRes = await apiClient.get(`/api/payment?tripId=${tripId}`);
                                             const list = Array.isArray(paymentsRes.data) ? paymentsRes.data : (paymentsRes.data.payments || []);
                                             setPayments(list.map(p => ({
                                                 payment_id: p.paymentId ?? p.payment_id ?? p.id,

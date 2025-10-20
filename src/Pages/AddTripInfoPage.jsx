@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import apiClient from '../config/axios';
 
 function AddTripInfoPage() {
     const [name, setName] = useState('');
@@ -19,14 +19,12 @@ function AddTripInfoPage() {
         setLoading(true);
         setError('');
         try {
-            await axios.post('/api/trip', {
+            await apiClient.post('/api/trip', {
                 memberId: 1,
                 travelerName: travelerName,
                 startDate: startDate,
                 endDate: endDate,
                 tripName: name
-            }, {
-                withCredentials: true
             });
             setSuccess(true);
             setTimeout(() => {

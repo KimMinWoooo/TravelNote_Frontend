@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import apiClient from '../config/axios';
 
 function UserInfoPage() {
     const [info, setInfo] = useState(null);
@@ -11,7 +11,7 @@ function UserInfoPage() {
             setLoading(true);
             setError('');
             try {
-                const res = await axios.get('/api/member/me', { withCredentials: true });
+                const res = await apiClient.get('/api/member/me');
                 setInfo(res.data);
             } catch {
                 setError('내 정보를 불러오지 못했습니다. 로그인 상태를 확인하세요.');

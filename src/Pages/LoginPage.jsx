@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import LoginBox from '../Components/LoginBox';
-import axios from 'axios';
+import apiClient from '../config/axios';
 
 function LoginPage() {
     const [loading, setLoading] = useState(false);
@@ -11,10 +11,10 @@ function LoginPage() {
         setError('');
         try {
             // 실제 API 엔드포인트는 명세서에 따라 수정 필요
-            await axios.post('/api/member/login', {
+            await apiClient.post('/api/member/login', {
                 email: registerId,
                 password: password
-            }, { withCredentials: true });
+            });
             // JWT는 쿠키로 발급되므로 로컬 저장 불필요. 성공 시 이동
             window.location.href = '/before';
         } catch (e) {

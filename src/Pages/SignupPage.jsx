@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import apiClient from '../config/axios';
 
 function SignupPage() {
     const [name, setName] = useState('');
@@ -18,7 +18,7 @@ function SignupPage() {
         setLoading(true);
         setError('');
         try {
-            await axios.post('/api/member/signup', {
+            await apiClient.post('/api/member/signup', {
                 name,
                 email: registerId,
                 password

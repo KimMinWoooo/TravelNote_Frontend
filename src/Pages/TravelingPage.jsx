@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import apiClient from '../config/axios';
 
 function TravelingPage() {
     const [trip, setTrip] = useState(null);
@@ -18,7 +18,7 @@ function TravelingPage() {
             setError('');
             try {
                 // 현재 여행 API가 없으므로, 목록에서 가장 최근 항목을 선택
-                const listRes = await axios.get('/api/trip', { withCredentials: true });
+                const listRes = await apiClient.get('/api/trip');
                 const list = Array.isArray(listRes.data) ? listRes.data : (listRes.data?.trips || []);
                 if (list.length === 0) {
                     setTrip(null);
@@ -31,9 +31,9 @@ function TravelingPage() {
                         end_date: latest.endDate ?? latest.end_date
                     };
                     setTrip(normalized);
-                    const travelersRes = await axios.get(`/api/traveler?tripId=${normalized.trip_id}`, { withCredentials: true });
+                    const travelersRes = await apiClient.get(`/api/traveler?tripId=${normalized.trip_id}`);
                     setTravelers(travelersRes.data.travelers || []);
-                    const paymentsRes = await axios.get(`/api/payment?tripId=${normalized.trip_id}`, { withCredentials: true });
+                    const paymentsRes = await apiClient.get(`/api/payment?tripId=${normalized.trip_id}`);
                     const payList = Array.isArray(paymentsRes.data) ? paymentsRes.data : (paymentsRes.data.payments || []);
                     setPayments(payList.map(p => ({
                         payment_id: p.paymentId ?? p.payment_id ?? p.id,

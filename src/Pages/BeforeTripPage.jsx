@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import apiClient from '../config/axios';
 import { useNavigate } from 'react-router-dom';
 
 function BeforeTripPage() {
@@ -13,9 +13,7 @@ function BeforeTripPage() {
             setLoading(true);
             setError('');
             try {
-                const res = await axios.get('/api/trip', {
-                    withCredentials: true
-                });
+                const res = await apiClient.get('/api/trip');
                 const list = Array.isArray(res.data) ? res.data : (res.data?.trips || []);
                 setTrips(list.map(t => ({
                     trip_id: t.id ?? t.trip_id,
