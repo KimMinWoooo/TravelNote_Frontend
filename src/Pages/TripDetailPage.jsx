@@ -82,7 +82,7 @@ function TripDetailPage() {
             setAddCost('');
             setAddTravelerId('');
             // 새로고침
-            const paymentsRes = await axios.get(`/api/payment?tripId=${tripId}`, { withCredentials: true });
+            const paymentsRes = await apiClient.get(`/api/payment?tripId=${tripId}`);
             const list = Array.isArray(paymentsRes.data) ? paymentsRes.data : (paymentsRes.data.payments || []);
             setPayments(list.map(p => ({
                 payment_id: p.paymentId ?? p.payment_id ?? p.id,

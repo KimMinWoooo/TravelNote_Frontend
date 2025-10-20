@@ -103,7 +103,7 @@ function TravelingPage() {
                                     setChatLoading(true);
                                     try {
                                         // 실제 챗봇 API 엔드포인트로 요청
-                                        const res = await axios.post('http://localhost:3001/api/chat', {
+                                        const res = await apiClient.post('/api/chat', {
                                             message: chatInput
                                         });
                                         setChatHistory(h => [...h, { question: chatInput, answer: res.data.answer }]);
