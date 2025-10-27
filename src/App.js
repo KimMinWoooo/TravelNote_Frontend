@@ -26,6 +26,12 @@ function BottomNav() {
 
     const currentPath = location.pathname;
 
+    // 로그인/회원가입 페이지에서는 메뉴 버튼을 표시하지 않음
+    const isLoginOrSignup = currentPath === '/login' || currentPath === '/signup';
+    if (isLoginOrSignup) {
+        return null;
+    }
+
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
     };
