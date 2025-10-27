@@ -2,67 +2,157 @@
     width: 100%;
     max-width: 340px;
     margin: 0 auto;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    padding: 28px 18px 20px 18px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.9));
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 1px rgba(102, 126, 234, 0.2);
+    padding: 32px 20px 24px 20px;
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.8);
+    animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .loginbox-title {
-    font-size: 1.3rem;
+    font-size: 1.5rem;
     font-weight: bold;
-    margin-bottom: 18px;
+    margin-bottom: 24px;
     text-align: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .loginbox-input {
     font-size: 1rem;
-    padding: 12px 10px;
-    margin-bottom: 12px;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
     outline: none;
-    background: #fafbfc;
-    transition: border 0.2s;
+    background: #f9fafb;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
+
 .loginbox-input:focus {
-    border: 1.5px solid #1976d2;
-    background: #fff;
+    border: 2px solid #667eea;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1), 0 4px 12px rgba(102, 126, 234, 0.15);
+    transform: translateY(-1px);
+}
+
+.loginbox-input:hover {
+    border-color: #c7d2fe;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.1);
 }
 
 .loginbox-btn {
-    background: #1976d2;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #fff;
     font-size: 1.1rem;
     font-weight: bold;
     border: none;
-    border-radius: 6px;
-    padding: 12px 0;
-    margin-top: 6px;
+    border-radius: 12px;
+    padding: 14px 0;
+    margin-top: 8px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 14px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
 }
+
+.loginbox-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.loginbox-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.loginbox-btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+}
+
 .loginbox-btn:disabled {
-    background: #90caf9;
+    background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);
     cursor: not-allowed;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .loginbox-error {
-    color: #e53935;
+    color: #ef4444;
     font-size: 0.95rem;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     text-align: center;
+    padding: 10px 12px;
+    background: #fef2f2;
+    border-radius: 10px;
+    border: 1px solid #fecaca;
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
 }
 
 .loginbox-bottom {
-    margin-top: 16px;
+    margin-top: 20px;
     text-align: center;
     font-size: 0.98rem;
+    color: #6b7280;
 }
+
 .loginbox-bottom a {
-    color: #1976d2;
-    text-decoration: underline;
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+    position: relative;
+    transition: color 0.3s;
+}
+
+.loginbox-bottom a::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    transition: width 0.3s;
+}
+
+.loginbox-bottom a:hover {
+    color: #764ba2;
+}
+
+.loginbox-bottom a:hover::after {
+    width: 100%;
 } 

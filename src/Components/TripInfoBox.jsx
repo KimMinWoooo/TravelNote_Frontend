@@ -4,13 +4,21 @@ import { useState } from 'react';
 import MemberModal from './MemberMain/MemberModal';
 
 const Box = styled.div`
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  margin-bottom: 20px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.9));
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(102, 126, 234, 0.12), 0 0 1px rgba(102, 126, 234, 0.1);
+  padding: 24px;
+  margin-bottom: 24px;
   width: 90%;
   box-sizing: border-box;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.8);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 48px rgba(102, 126, 234, 0.18);
+  }
 `;
 
 const TripInfoBoxContainer = styled(Box)`
@@ -18,36 +26,56 @@ const TripInfoBoxContainer = styled(Box)`
 `;
 
 const TripTitle = styled.div`
-  font-size: 18px;
+  font-size: 20px;
   font-weight: bold;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 `;
 
 const TripDates = styled.div`
-  font-size: 14px;
-  margin-bottom: 10px;
+  font-size: 15px;
+  margin-bottom: 12px;
+  color: #6b7280;
+  font-weight: 500;
 `;
 
 const TripDetails = styled.div`
-  font-size: 14px;
-  margin-bottom: 10px;
+  font-size: 15px;
+  margin-bottom: 12px;
+  color: #4b5563;
+  line-height: 1.6;
 `;
 
 const ButtonContainer = styled.div`
   display: flex;
   gap: 10px;
+  margin-top: 16px;
 `;
 
 const Button = styled.button`
-  background-color: #eee;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+  border: 2px solid rgba(102, 126, 234, 0.2);
+  border-radius: 10px;
+  padding: 10px 16px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 600;
+  color: #667eea;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background-color: #ddd;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    border-color: transparent;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  }
+  
+  &:active {
+    transform: translateY(0);
   }
 `;
 

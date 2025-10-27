@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LoginPage from './Pages/LoginPage';
 import SignupPage from './Pages/SignupPage';
 import AddTripInfoPage from './Pages/AddTripInfoPage';
@@ -14,14 +14,66 @@ function Header({ title }) {
 }
 
 function BottomNav() {
-    // TODO: 현재 경로에 따라 활성화 표시
+    const location = useLocation();
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    const menuItems = [
+        { path: '/before', label: '여행목록', icon: '📍' },
+        { path: '/add', label: '여행생성', icon: '✈️' },
+        { path: '/traveling', label: '여행중', icon: '🗺️' },
+        { path: '/me', label: '내정보', icon: '👤' }
+    ];
+
+    const currentPath = location.pathname;
+
+    const toggleMenu = () => {
+        setIsMenuOpen(!isMenuOpen);
+    };
+
+    const closeMenu = () => {
+        setIsMenuOpen(false);
+    };
+
+    const handleMenuItemClick = (e, path) => {
+        e.preventDefault();
+        window.location.href = path;
+        closeMenu();
+    };
+
     return (
-        <nav className="bottom-nav">
-            <a href="/before" className="bottom-nav__item">여행목록</a>
-            <a href="/add" className="bottom-nav__item">여행생성</a>
-            <a href="/traveling" className="bottom-nav__item">여행중</a>
-            <a href="/me" className="bottom-nav__item">내정보</a>
-        </nav>
+        <>
+            <button className="menu-button" onClick={toggleMenu} aria-label="메뉴 열기">
+                <span className={`hamburger ${isMenuOpen ? 'active' : ''}`}>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </span>
+            </button>
+
+            <div className={`menu-overlay ${isMenuOpen ? 'open' : ''}`} onClick={closeMenu}>
+                <nav className={`bottom-nav-drawer ${isMenuOpen ? 'open' : ''}`} onClick={(e) => e.stopPropagation()}>
+                    <div className="menu-header">
+                        <h2 className="menu-title">메뉴</h2>
+                        <button className="menu-close" onClick={closeMenu} aria-label="메뉴 닫기">×</button>
+                    </div>
+                    <ul className="menu-list">
+                        {menuItems.map((item, index) => (
+                            <li key={index} className={currentPath === item.path ? 'menu-active' : ''}>
+                                <a 
+                                    href={item.path} 
+                                    className="menu-item"
+                                    onClick={(e) => handleMenuItemClick(e, item.path)}
+                                >
+                                    <span className="menu-icon">{item.icon}</span>
+                                    <span className="menu-label">{item.label}</span>
+                                    {currentPath === item.path && <span className="menu-indicator">✓</span>}
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                </nav>
+            </div>
+        </>
     );
 }
 
